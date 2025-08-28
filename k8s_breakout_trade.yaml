@@ -1,0 +1,71 @@
+# Kubernetes manifests (Deployment uses Docker image)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: breakout-trade-tech
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: breakout-trade-sa
+  namespace: breakout-trade-tech
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: breakout-trade-deployment
+  namespace: breakout-trade-tech
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: breakout-trade
+  template:
+    metadata:
+      labels:
+        app: breakout-trade
+    spec:
+      serviceAccountName: breakout-trade-sa
+      containers:
+      - name: breakout-trade-container
+        image: YOUR_DOCKERHUB_USERNAME/breakout-trade-tech:latest
+        ports:
+        - containerPort: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: breakout-trade-service
+  namespace: breakout-trade-tech
+spec:
+  selector:
+    app: breakout-trade
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: breakout-trade-ingress
+  namespace: breakout-trade-tech
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+  - host: breakout-trade.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: breakout-trade-service
+            port:
+              number: 80
